@@ -1,6 +1,8 @@
-from flask import Flask, g
+from flask import (Flask, g, render_template, flash, redirect, url_for)
+from flask_wtf import FlaskForm
+from wtforms import validators, StringField, PasswordField
 from flask_login import LoginManager
-
+import forms
 import models
 
 app = Flask(__name__)
@@ -17,10 +19,6 @@ def load_user(userid):
     except models.DoesNotExist:
         return None
 
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World!'
-
 @app.before_request
 def before_request():
     """Connect to the database before each request."""
@@ -33,17 +31,38 @@ def after_request(response):
     g.db.close()
     return response
 
-def initialise():
-    DATABASE.connect()
-    DATABASE.create_tables([User], safe=True)
-    DATABASE.close()
+@app.route('/register', methods=('GET', 'POST'))
+def register():
+    form = forms.RegisterForm
+    if form.validate():
+        flash("Yay, you're registered!", "success")
+        models.User.create_user(
+            username=form.username.data,
+            email=form.email.data,
+            password=form.password.data
+        )
+        return redirect(url_for('index'))
+    return render_template('register.html', form=form)
+
+@app.route('/')
+def index():
+    return "Hey"
+
+# def initialize():
+#     DATABASE.connect()
+#     DATABASE.create_tables([User], safe=True)
+#     DATABASE.close()
 
 if __name__ == '__main__':
-    models.initialise()
-    models.User.create_user(
-        name='HaraChung',
-        email='harachung90@gmail,com',
-        password='passwprd',
-        admin=True
-    )
+    models.initialize()
+    try:
+        models.User.create_user(
+            username='HaraChung',
+            email='harachung90@gmail,com',
+            password='passwprd',
+            admin=True
+        )
+    except ValueError:
+        pass
+
     app.run()
